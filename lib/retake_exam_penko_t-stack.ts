@@ -88,28 +88,14 @@ export class LidyaCdkProjectStack extends cdk.Stack {
       }
     });
     const saveCatIntegration = new apigateway.LambdaIntegration(saveCatLambda);
-    
-    // Add Route53 so she can by this DNS cataas.com
-    const zone = route53.HostedZone.fromLookup(this, 'Zone', {
-    domainName: 'cataas.com',
-    });
 
-    // 3. CloudFront with custom domain + cert
-    const certificate = new certificatemanager.DnsValidatedCertificate(this, 'SiteCert', {
-      domainName: 'cataas.com',
-      hostedZone: zone,
-      region: 'us-east-1',
-    });
-
+    // CloudFront distribution for the S3 website bucket
     const distribution = new cloudfront.Distribution(this, 'WebsiteDistribution', {
-      defaultBehavior: { origin: new origins.S3Origin(WebsiteBucket) },
-      domainNames: ['cataas.com'],
-      certificate: certificate,
-    });
-
-    new route53.ARecord(this, 'AliasRecord', {
-      zone,
-      target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),
+      defaultBehavior: {
+        origin: new origins.S3Origin(WebsiteBucket),
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      },
+      defaultRootObject: 'index.html',
     });
 
     new cdk.CfnOutput(this, 'WebsiteURL', { value: distribution.domainName });
