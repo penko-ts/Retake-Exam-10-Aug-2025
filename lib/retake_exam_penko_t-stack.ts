@@ -1,4 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
+import { Construct } from 'constructs';
+// import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { CfnOutput, Duration } from 'aws-cdk-lib';
 import { SnsDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { Protocol } from 'aws-cdk-lib/aws-ec2';
@@ -9,7 +11,7 @@ import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
 import { BucketDeployment, Source } from 'aws-cdk-lib/aws-s3-deployment';
 import { Lambda } from 'aws-cdk-lib/aws-ses-actions';
 import { Subscription, Topic, SubscriptionProtocol } from 'aws-cdk-lib/aws-sns';
-import { Construct, Node } from 'constructs';
+// import { Construct, Node } from 'constructs';
 import path from 'path';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { AttributeType, BillingMode, Table } from 'aws-cdk-lib/aws-dynamodb';
@@ -18,10 +20,6 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import { HttpMethod } from 'aws-cdk-lib/aws-events';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
-import * as route53 from 'aws-cdk-lib/aws-route53';
-import * as targets from 'aws-cdk-lib/aws-route53-targets';
-import * as certificatemanager from 'aws-cdk-lib/aws-certificatemanager';
-
 
 export class LidyaCdkProjectStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -88,16 +86,14 @@ export class LidyaCdkProjectStack extends cdk.Stack {
       }
     });
     const saveCatIntegration = new apigateway.LambdaIntegration(saveCatLambda);
-
-    // CloudFront distribution for the S3 website bucket
     const distribution = new cloudfront.Distribution(this, 'WebsiteDistribution', {
       defaultBehavior: {
         origin: new origins.S3Origin(WebsiteBucket),
-        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-      },
-      defaultRootObject: 'index.html',
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS
+      }
     });
-
+    
+    
     new cdk.CfnOutput(this, 'WebsiteURL', { value: distribution.domainName });
     new cdk.CfnOutput(this, 'ApiURL', { value: api.url });
   }
