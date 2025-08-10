@@ -18,6 +18,9 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import { HttpMethod } from 'aws-cdk-lib/aws-events';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as targets from 'aws-cdk-lib/aws-route53-targets';
+import * as certificatemanager from 'aws-cdk-lib/aws-certificatemanager';
 
 
 export class LidyaCdkProjectStack extends cdk.Stack {
@@ -85,14 +88,30 @@ export class LidyaCdkProjectStack extends cdk.Stack {
       }
     });
     const saveCatIntegration = new apigateway.LambdaIntegration(saveCatLambda);
-    const distribution = new cloudfront.Distribution(this, 'WebsiteDistribution', {
-      defaultBehavior: {
-        origin: new origins.S3Origin(WebsiteBucket),
-        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS
-      }
+    
+    // Add Route53 so she can by this DNS cataas.com
+    const zone = route53.HostedZone.fromLookup(this, 'Zone', {
+    domainName: 'cataas.com',
     });
-    
-    
+
+    // 3. CloudFront with custom domain + cert
+    const certificate = new certificatemanager.DnsValidatedCertificate(this, 'SiteCert', {
+      domainName: 'cataas.com',
+      hostedZone: zone,
+      region: 'us-east-1',
+    });
+
+    const distribution = new cloudfront.Distribution(this, 'WebsiteDistribution', {
+      defaultBehavior: { origin: new origins.S3Origin(WebsiteBucket) },
+      domainNames: ['cataas.com'],
+      certificate: certificate,
+    });
+
+    new route53.ARecord(this, 'AliasRecord', {
+      zone,
+      target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),
+    });
+
     new cdk.CfnOutput(this, 'WebsiteURL', { value: distribution.domainName });
     new cdk.CfnOutput(this, 'ApiURL', { value: api.url });
   }
